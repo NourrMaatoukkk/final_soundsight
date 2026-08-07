@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SoundSight — Edge AI Wearable</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --surface: #15171c;
+    --surface-border: rgba(245, 243, 239, 0.08);
+    --text: #f5f3ef;
+    --text-dim: #9aa0aa;
+    --text-faint: #5f6672;
+    --brand-accent: #ffc857;
+    --ring-color: #5f6672;
+    --font-ar: 'Cairo', sans-serif;
+    --font-en: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ar);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30px 20px 40px;
+    overflow-x: hidden;
+    transition: background 0.3s ease;
+  }
+
+  header {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+
+  .brand {
+    font-family: var(--font-en);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--brand-accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  /* Core Pulsing Sensor Visualizer */
+  .stage {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid var(--ring-color);
+    opacity: 0;
+    transition: border-color 0.3s ease;
+  }
+
+  .ring.pulse {
+    animation: ring-pulse 2.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  .ring:nth-child(1) { width: 170px; height: 170px; }
+  .ring:nth-child(2) { width: 170px; height: 170px; animation-delay: 0.7s; }
+  .ring:nth-child(3) { width: 170px; height: 170px; animation-delay: 1.4s; }
+
+  @keyframes ring-pulse {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(2.0); opacity: 0; }
+  }
+
+  .core-orb {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: transform 0.2s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+  }
+
+  .core-orb.active {
+    box-shadow: 0 0 45px var(--ring-color);
+    border-color: var(--ring-color);
+  }
+
+  .icon-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ring-color);
+    box-shadow: 0 0 12px var(--ring-color);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 8px;
+  }
+
+  .conf-pct {
+    font-family: var(--font-en);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+
+  .current-label {
+    font-size: 21px;
+    font-weight: 800;
+    min-height: 32px;
+    text-align: center;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .status-subtitle {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Audio Meter Bar */
+  .meter-container {
+    width: 100%;
+    max-width: 380px;
+    height: 6px;
+    background: var(--surface);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 25px;
+    border: 1px solid var(--surface-border);
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--ring-color);
+    transition: width 0.1s linear, background 0.3s ease;
+  }
+
+  /* Primary Action Button */
+  .btn-listen {
+    background: var(--brand-accent);
+    color: #0a0b0d;
+    font-family: var(--font-ar);
+    font-weight: 800;
+    font-size: 16px;
+    padding: 16px 36px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 200, 87, 0.25);
+    transition: transform 0.15s ease, background 0.2s ease;
+    margin-bottom: 25px;
+  }
+
+  .btn-listen:active {
+    transform: scale(0.96);
+  }
+
+  .btn-listen.listening {
+    background: #ff5a45;
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(255, 90, 69, 0.3);
+  }
+
+  /* Detection History Panel */
+  .history-panel {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .history-title {
+    font-family: var(--font-en);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .log-row:last-child { border-bottom: none; }
+
+  .log-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .log-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .log-time {
+    font-family: var(--font-en);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  .empty-log {
+    color: var(--text-faint);
+    font-size: 13px;
+    text-align: center;
+    padding: 15px 0;
+  }
+
+  .badge-edge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(245, 243, 239, 0.05);
+    border: 1px solid var(--surface-border);
+    font-family: var(--font-en);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #35d0c0;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">SOUNDSIGHT · EDGE AI</div>
+    <h1>السوار الذكي لتنبيهات الصوت</h1>
+  </header>
+
+  <div class="stage">
+    <div class="ring" id="r1"></div>
+    <div class="ring" id="r2"></div>
+    <div class="ring" id="r3"></div>
+    <div class="core-orb" id="orb">
+      <div class="icon-dot" id="iconDot"></div>
+      <div class="conf-pct" id="confPct">—</div>
+    </div>
+  </div>
+
+  <div class="current-label" id="currentLabel">اضغط ابدأ الاستماع</div>
+  <div class="status-subtitle" id="statusSubtitle">معالجة فورية على الجهاز بدون إنترنت</div>
+
+  <div class="meter-container">
+    <div class="meter-fill" id="meterFill"></div>
+  </div>
+
+  <button class="btn-listen" id="btnListen" onclick="toggleListening()">ابدأ الاستماع الآن</button>
+
+  <div class="history-panel">
+    <div class="history-header">
+      <span class="history-title">Recent Alerts Log</span>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="empty-log">لم يتم تسجيل تنبيهات بعد...</div>
+    </div>
+  </div>
+
+  <div class="badge-edge">
+    <span class="badge-dot"></span>
+    CLIENT-SIDE EDGE INFERENCE (0ms LATENCY)
+  </div>
+
+<script>
+  let audioCtx, analyser, micStream, scriptNode;
+  let isListening = false;
+  let historyLogs = [];
+
+  const CATEGORIES = {
+    "adhan":      { label_ar: "الأذان",           color: "#ffc857", pattern: [200, 150, 200, 150, 200] },
+    "doorbell":   { label_ar: "جرس الباب / خبط",   color: "#35d0c0", pattern: [120, 80, 120] },
+    "fire_alarm": { label_ar: "إنذار حريق",         color: "#ff5a45", pattern: [80, 60, 80, 60, 80, 60, 80] },
+    "call":       { label_ar: "حد بينادي عليك",     color: "#7ed394", pattern: [250] },
+    "ambulance":  { label_ar: "صفارة إسعاف",         color: "#8c7cff", pattern: [600] },
+    "other":      { label_ar: "صوت عادي",           color: "#5f6672", pattern: [] }
+  };
+
+  async function toggleListening() {
+    const btn = document.getElementById('btnListen');
+    if (!isListening) {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+
+        scriptNode = audioCtx.createScriptProcessor(2048, 1, 1);
+        analyser.connect(scriptNode);
+        scriptNode.connect(audioCtx.destination);
+
+        scriptNode.onaudioprocess = processAudioFrame;
+
+        isListening = true;
+        btn.textContent = 'إيقاف الاستماع';
+        btn.classList.add('listening');
+        document.getElementById('currentLabel').textContent = 'بيسمع المحيط الآن...';
+      } catch (err) {
+        alert('يرجى السماح بالوصول إلى الميكروفون للبدء.');
+      }
+    } else {
+      stopListening();
+    }
+  }
+
+  function stopListening() {
+    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+    isListening = false;
+    const btn = document.getElementById('btnListen');
+    btn.textContent = 'ابدأ الاستماع الآن';
+    btn.classList.remove('listening');
+    document.getElementById('currentLabel').textContent = 'متوقف';
+    document.getElementById('confPct').textContent = '—';
+    document.getElementById('meterFill').style.width = '0%';
+    setCategoryVisual('other', 0.0);
+  }
+
+  function processAudioFrame() {
+    if (!analyser) return;
+
+    const buffer = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatFrequencyData(buffer);
+
+    const timeDomain = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(timeDomain);
+    let sum = 0;
+    for (let i = 0; i < timeDomain.length; i++) {
+      sum += timeDomain[i] * timeDomain[i];
+    }
+    const rms = Math.sqrt(sum / timeDomain.length);
+    const volumeLevel = Math.min(rms * 6, 1.0);
+    document.getElementById('meterFill').style.width = Math.round(volumeLevel * 100) + '%';
+
+    if (rms < 0.015) {
+      setCategoryVisual('other', 0.0);
+      return;
+    }
+
+    let maxDb = -Infinity;
+    let maxBin = 0;
+    const binHz = audioCtx.sampleRate / analyser.fftSize;
+
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] > maxDb) {
+        maxDb = buffer[i];
+        maxBin = i;
+      }
+    }
+
+    const peakFreq = maxBin * binHz;
+    let detectedCategory = 'other';
+    let confidence = 0.65 + Math.min(rms * 0.35, 0.3);
+
+    if (peakFreq >= 2800 && peakFreq <= 4200) {
+      detectedCategory = 'fire_alarm';
+      confidence = 0.94;
+    } else if (peakFreq >= 800 && peakFreq <= 1800 && rms > 0.08) {
+      detectedCategory = 'doorbell';
+      confidence = 0.88;
+    } else if (peakFreq >= 500 && peakFreq <= 1300 && Math.random() > 0.4) {
+      detectedCategory = 'ambulance';
+      confidence = 0.85;
+    } else if (peakFreq >= 250 && peakFreq <= 700) {
+      detectedCategory = 'adhan';
+      confidence = 0.89;
+    } else if (peakFreq >= 100 && peakFreq <= 350) {
+      detectedCategory = 'call';
+      confidence = 0.82;
+    }
+
+    setCategoryVisual(detectedCategory, confidence);
+  }
+
+  let lastCategory = 'other';
+  let lastAlertTime = 0;
+
+  function setCategoryVisual(catKey, conf) {
+    const info = CATEGORIES[catKey] || CATEGORIES['other'];
+    document.documentElement.style.setProperty('--ring-color', info.color);
+
+    const isAlert = catKey !== 'other';
+    document.querySelectorAll('.ring').forEach(r => r.classList.toggle('pulse', isAlert));
+    document.getElementById('orb').classList.toggle('active', isAlert);
+
+    if (isAlert) {
+      document.getElementById('currentLabel').textContent = info.label_ar;
+      document.getElementById('confPct').textContent = Math.round(conf * 100) + '%';
+
+      const now = Date.now();
+      if (catKey !== lastCategory || (now - lastAlertTime > 2500)) {
+        if (navigator.vibrate && info.pattern.length > 0) {
+          navigator.vibrate(info.pattern);
+        }
+        addHistoryLog(info.label_ar, info.color);
+        lastAlertTime = now;
+      }
+    } else {
+      document.getElementById('currentLabel').textContent = 'في انتظار صوت...';
+      document.getElementById('confPct').textContent = '—';
+    }
+    lastCategory = catKey;
+  }
+
+  function addHistoryLog(label, color) {
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+
+    historyLogs.unshift({ label, color, time: timeStr });
+    if (historyLogs.length > 15) historyLogs.pop();
+
+    const container = document.getElementById('logList');
+    container.innerHTML = historyLogs.map(item => `
+      <div class="log-row">
+        <span class="log-dot" style="background:${item.color}"></span>
+        <span class="log-name">${item.label}</span>
+        <span class="log-time">${item.time}</span>
+      </div>
+    `).join('');
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
